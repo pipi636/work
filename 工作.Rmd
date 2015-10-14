@@ -1,0 +1,122 @@
+---
+title: "测试报告"
+author: "杨波"
+date: "2015年10月13日"
+output: word_document
+---
+这是我学习markdown和R的一个小测试。目前主要用R处理一些基础数据，比如数据挑选以及简单的汇总，主要用在房地产、投资和重点服务业调查里。
+
+# 1. 房地产
+由于市统计反馈的是全市的房地产投资和面积的数据，没有单独反馈两江新区的汇总数，所以在日常工作中，每次都需要根据两江新区的行政区划码挑选原始数据，然后再汇总。
+下面是一个简短的实例。显示的结果是房地产投资的汇总数。
+
+## 1.1 房地产投资
+```{r,echo=FALSE,warning=FALSE}
+setwd("d:/jichushuju/tz/")
+library(rJava)
+library(xlsx)
+fdctz.cq <- read.xlsx2("201507区县反馈X203.xls",
+sheetIndex = 1,
+colIndex = c(2,11,30:54),
+colClasses = c("character","character",rep("numeric",25))
+)
+jsdz <- as.character(fdctz.cq$项目所在地行政区划) #转换行政区划码类别
+jsdz1 <- substr(jsdz,1,9) #取行政区划码前9位
+fdctz.cq$项目所在地行政区划 <- jsdz1 #替换行政区划码
+ljdm <- read.csv("ljdm.csv") #读入两江新区行政区划码
+ljdm <- c(ljdm$dm) #向量
+fdctz.lj <- subset(fdctz.cq,fdctz.cq$项目所在地行政区划%in%ljdm) #挑选属于两江新区的项目
+write.csv(fdctz.lj,"fdctz.lj.csv")
+sum.fdctz.lj <- apply(fdctz.lj[,3:27],2,sum,na.rm=TRUE)
+write.csv(sum.fdctz.lj,"sum.fdctz.lj.csv")
+name.fdctz <- names(sum.fdctz.lj)
+names(sum.fdctz.lj) <- NULL
+cbind(name.fdctz,sum.fdctz.lj)
+```
+
+## 1.2 房地产面积
+```{r,echo=FALSE,warning=FALSE}
+setwd("d:/jichushuju/tz/")
+library(rJava)
+library(xlsx)
+fdcmj.cq <- read.xlsx2("201507区县反馈X2031.xls",
+                       sheetIndex = 1,
+                       colIndex = c(2,4:172,181),
+                       colClasses = c("character",rep("numeric",169),"character")
+)
+jsdz1 <- substr(fdcmj.cq$项目所在地行政区划,1,9) #取行政区划码前9位
+fdcmj.cq$项目所在地行政区划 <- jsdz1 #替换行政区划码
+ljdm <- read.csv("ljdm.csv") #读入两江新区行政区划码
+ljdm <- c(ljdm$dm) #向量
+fdcmj.lj <- subset(fdcmj.cq,fdcmj.cq$项目所在地行政区划%in%ljdm) #挑选属于两江新区的项目
+write.csv(fdcmj.lj,"fdcmj.lj.csv")
+sum.fdcmj.lj <- apply(fdcmj.lj[,2:170],2,sum,na.rm=TRUE)
+write.csv(sum.fdcmj.lj,"sum.fdcmj.lj.csv")
+name.fdcmj <- names(sum.fdcmj.lj)
+names(sum.fdcmj.lj) <- NULL
+cbind(name.fdcmj,sum.fdcmj.lj)
+```
+
+# 2. 投资
+投资项目是分别下载的三个区的数据，所以也需要根据两江新区的行政区划码来挑选汇总。
+```{r,echo=FALSE,warning=FALSE}
+setwd("d:/jichushuju/tz/")
+xm.105 <- read.csv("500105.csv") #读入江北区
+xm.109 <- read.csv("500109.csv") #读入北碚区
+xm.112 <- read.csv("500112.csv") #读入渝北区
+xm.sb <- rbind(xm.105,xm.109,xm.112) #合并三区
+jsdz <- as.character(xm.sb$建设地址码) #转换建设地址码类别
+jsdz1 <- substr(jsdz,1,9) #取建设地址码前9位
+xm.sb$建设地址码 <- jsdz1 #替换建设地址码
+ljdm <- read.csv("ljdm.csv") #读入两江新区行政区划码
+ljdm <- c(ljdm$dm) #向量
+xm.lj <- subset(xm.sb,xm.sb$建设地址码%in%ljdm) #挑选属于两江新区的项目
+write.csv(xm.lj,"xm.lj.csv")
+sum.tz.lj <- apply(xm.lj[,22:59],2,sum,na.rm=TRUE)
+name.sum.tz.lj <- names(sum.tz.lj)
+names(sum.tz.lj) <- NULL
+cbind(name.sum.tz.lj,sum.tz.lj)
+```
+
+# 3. 重点服务业
+重点服务业更复杂一点，因为财务表没有地址码，所以先在基本单位表根据地址码筛选属于两江新区的企业，然后根据组织机构代码合并基本单位表和财务表，最后汇总财务数据。
+```{r,echo=FALSE,warning=FALSE}
+setwd("d:/jichushuju/")
+jbdw.500105 <- read.csv("201-1.500105.00.csv") #读入江北区基本单位
+jbdw.500109 <- read.csv("201-1.500109.00.csv") #读入北碚区基本单位
+jbdw.500112 <- read.csv("201-1.500112.00.csv") #读入渝北区基本单位
+jbdw.sb <- rbind(jbdw.500105,jbdw.500109,jbdw.500112)
+jbdw.sb$xzqh <- as.character(jbdw.sb$xzqh)
+jbdw.sb$zzjgdm <- as.character(jbdw.sb$zzjgdm)
+jbdw.sb$dwmc <- as.character(jbdw.sb$dwmc)
+ljdm <- read.csv("ljdm.csv")
+ljdm$dm <- as.character(ljdm$dm)
+jbdw.sb$xzqh <- substr(jbdw.sb$xzqh,1,9)
+jbdw.lj <- subset(jbdw.sb,jbdw.sb$xzqh%in%ljdm$dm)
+write.csv(jbdw.lj,"jbdw.lj.csv")
+fwy.500105 <- read.csv("F203.500105.00.csv")
+fwy.500109 <- read.csv("F203.500109.00.csv")
+fwy.500112 <- read.csv("F203.500112.00.csv")
+fwy.sb <- rbind(fwy.500105,fwy.500109,fwy.500112)
+fwy.sb$zzjgdm <- as.character(fwy.sb$zzjgdm)
+fwy.lj <- merge(fwy.sb,jbdw.lj)
+write.csv(fwy.lj,"重点服务业财务报表.csv")
+sum.fwy.lj <- apply(fwy.lj[,2:25],2,sum,na.rm=TRUE)
+sum.fwy.lj <- sum.fwy.lj/100000
+write.csv(sum.fwy.lj,"重点服务业财务数据汇总.csv")
+x <- seq(1,23,by=2)
+y <- seq(2,24,by=2)
+jde.fwy.lj <- round(sum.fwy.lj[x],2)  #计算绝对额
+zf <- round(sum.fwy.lj[x]*100/sum.fwy.lj[y]-100,1)  #计算增幅
+xcz.fwy.lj <- rbind(jde.fwy.lj,zf)
+xcz.fwy.lj <- as.data.frame(t(xcz.fwy.lj))
+colnames(xcz.fwy.lj) <- c("绝对额","增幅")
+row.names(xcz.fwy.lj) <- c("营业收入","营业成本","营业税金及附加","销售费用","管理费用",
+                          "其中：税金","财务费用","投资收益(损失以“-”号记)","营业利润",
+                          "利润总额","应付职工薪酬(本年贷方累计发生额)","应交增值税")
+write.csv(xcz.fwy.lj,"重点服务业小册子.csv")
+xcz.fwy.lj
+```
+
+将主要结果写入本文档，以后每个月只需要一次运行，就可以得到主要的结果，大大提高了工作效率。
+
